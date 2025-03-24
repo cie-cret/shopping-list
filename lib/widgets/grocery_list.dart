@@ -10,7 +10,8 @@ import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class GroceryList extends StatefulWidget {
-  const GroceryList({super.key});
+  const GroceryList({super.key, required this.firebaseURL});
+  final String firebaseURL;
 
   @override
   State<GroceryList> createState() => _GroceryListState();
@@ -28,10 +29,9 @@ class _GroceryListState extends State<GroceryList> {
   }
 
   void _loadItems() async {
-    await dotenv.load();
-    final firebaseURL = dotenv.env['FIREBASE_URL'];
+    final firebaseURL = widget.firebaseURL;
 
-    final url = Uri.https(firebaseURL!, 'shopping-list.json');
+    final url = Uri.https(firebaseURL, 'shopping-list.json');
 
     try {
       final response = await http.get(url);
@@ -63,7 +63,7 @@ class _GroceryListState extends State<GroceryList> {
           GroceryItem(
             id: item.key,
             name: item.value['name'],
-            quantity: item.value['quantity'],
+            quantity: int.parse(item.value['quantity'].toString()),
             category: category,
           ),
         );
@@ -85,11 +85,14 @@ class _GroceryListState extends State<GroceryList> {
   }
 
   void _addItem() async {
+    final firebaseURL = widget.firebaseURL;
     // AGAIN?
     final newItem = await Navigator.of(context).push<GroceryItem>(
       MaterialPageRoute(
         builder: (context) {
-          return const NewItem();
+          return NewItem(
+            firebaseURL: firebaseURL,
+          );
         },
       ),
     );
@@ -132,17 +135,20 @@ class _GroceryListState extends State<GroceryList> {
   }
 
   void _editItem(GroceryItem item) async {
+    final firebaseURL = widget.firebaseURL;
     final index = _groceryItems.indexOf(item);
 
     if (index == -1) {
-      // If the item doesn't exist in the list
       return;
     }
 
     final editedItem = await Navigator.of(context).push<GroceryItem>(
       MaterialPageRoute(
         builder: (context) {
-          return NewItem(item: item);
+          return NewItem(
+            item: item,
+            firebaseURL: firebaseURL,
+          );
         },
       ),
     );
@@ -154,29 +160,6 @@ class _GroceryListState extends State<GroceryList> {
     } else if (editedItem == null) {
       return;
     }
-
-    // await dotenv.load();
-    // final firebaseURL = dotenv.env['FIREBASE_URL'];
-
-    // final url = Uri.https(firebaseURL!, 'shopping-list/${item.id}.json');
-
-    //     final Map<String, dynamic> resData = json.decode(response.body);
-    //     Navigator.of(context).pop(
-    //       GroceryItem(
-    //           id: resData['name'],
-    //           name: _enteredName,
-    //           quantity: _enteredQuantity,
-    //           category: _selectedCategory),
-    //     );
-
-    // final response = await http.delete(url);
-
-    // if (response.statusCode >= 400) {
-    //   setState(() {
-    //     _groceryItems.insert(index, item);
-    //     // OK, remember here
-    //   });
-    // }
   }
 
   @override
@@ -208,8 +191,36 @@ class _GroceryListState extends State<GroceryList> {
             onDismissed: (direction) {
               if (direction == DismissDirection.endToStart) {
                 _removeItem(_groceryItems[index]);
-              } else if (direction == DismissDirection.startToEnd) {
+              }
+            },
+            confirmDismiss: (direction) async {
+              if (direction == DismissDirection.startToEnd) {
                 _editItem(_groceryItems[index]);
+                return false;
+              } else if (direction == DismissDirection.endToStart) {
+                // Show confirmation dialog for deletion
+                final shouldDelete = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Delete this item?'),
+                    // content: const Text('Do you want to delete this item?'),
+                    actions: <Widget>[
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(ctx).pop(false); // Do not delete
+                        },
+                        child: const Text('Cancel'),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.of(ctx).pop(true); // Confirm deletion
+                        },
+                        child: const Text('Delete'),
+                      ),
+                    ],
+                  ),
+                );
+                return shouldDelete ?? false;
               }
             },
             child: ListTile(

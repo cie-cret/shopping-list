@@ -4,11 +4,16 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   await dotenv.load();
-  runApp(const MyApp());
+  final firebaseURL = dotenv.env['FIREBASE_URL'] ?? '';
+  runApp(MyApp(
+    firebaseURL: firebaseURL,
+  ));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final String firebaseURL;
+
+  const MyApp({super.key, required this.firebaseURL});
 
   // This widget is the root of your application.
   @override
@@ -24,7 +29,9 @@ class MyApp extends StatelessWidget {
         ),
         scaffoldBackgroundColor: const Color.fromARGB(255, 50, 58, 60),
       ),
-      home: const GroceryList(),
+      home: GroceryList(
+        firebaseURL: firebaseURL,
+      ),
     );
   }
 }
