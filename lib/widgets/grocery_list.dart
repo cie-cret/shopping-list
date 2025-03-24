@@ -221,6 +221,9 @@ class _GroceryListState extends State<GroceryList> {
                   ),
                 );
                 return shouldDelete ?? false;
+              } else {
+                return false;
+                // What again?
               }
             },
             child: ListTile(
