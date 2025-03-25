@@ -244,6 +244,13 @@ class _NewItem extends State<NewItem> {
                         ? null
                         : () {
                             _formKey.currentState!.reset();
+                            _enteredName.clear();
+
+                            setState(() {
+                              _enteredQuantity = 1;
+                              _selectedCategory =
+                                  categories[Categories.vegetables]!;
+                            });
                           },
                     child: const Text(
                       'Reset',
